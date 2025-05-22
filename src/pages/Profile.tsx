@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { AuthenticatedLayout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
-import { User } from 'lucide-react';
+import { User, LogOut } from 'lucide-react';
 
 const Profile = () => {
   const { user, logout } = useAuth();
