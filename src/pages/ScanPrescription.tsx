@@ -1,33 +1,66 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AuthenticatedLayout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Camera, Image, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Capacitor } from '@capacitor/core';
+import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 const ScanPrescription = () => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleCapture = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setCapturedImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const handleCapture = async () => {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        // Use native camera on mobile
+        const image = await CapacitorCamera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: CameraResultType.DataUrl,
+          source: CameraSource.Camera,
+          width: 1080,
+          promptLabelHeader: 'Take a photo of your prescription',
+          promptLabelCancel: 'Cancel',
+          promptLabelPhoto: 'From Gallery',
+          promptLabelPicture: 'Take Photo',
+        });
+        
+        if (image && image.dataUrl) {
+          setCapturedImage(image.dataUrl);
+        }
+      } else {
+        // Fallback to file input on web
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.capture = 'environment';
+        
+        fileInput.onchange = (e: any) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+              setCapturedImage(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+        
+        fileInput.click();
+      }
+    } catch (error) {
+      console.error('Camera error:', error);
+      toast({
+        title: "Camera Error",
+        description: "There was an error accessing the camera. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -112,14 +145,6 @@ const ScanPrescription = () => {
                     <Camera className="mr-2 h-4 w-4" />
                     Take Photo
                   </Button>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    className="hidden"
-                    capture="environment"
-                  />
                 </div>
               )}
             </CardContent>
