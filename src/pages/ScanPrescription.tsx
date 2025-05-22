@@ -6,8 +6,38 @@ import { AuthenticatedLayout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Camera, Image, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Capacitor } from '@capacitor/core';
-import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
+
+// Define fallback objects for when Capacitor is not available
+const CapacitorFallback = {
+  isNativePlatform: () => false,
+};
+
+const CapacitorCameraFallback = {
+  getPhoto: async () => {
+    throw new Error('Camera not available in this environment');
+  },
+};
+
+// Try to import Capacitor packages, use fallbacks if they fail
+let Capacitor = CapacitorFallback;
+let CapacitorCamera = CapacitorCameraFallback;
+let CameraResultType = { DataUrl: 'dataUrl' };
+let CameraSource = { Camera: 'CAMERA' };
+
+// Dynamically import Capacitor packages
+try {
+  import('@capacitor/core').then(capacitorCore => {
+    Capacitor = capacitorCore.Capacitor;
+  });
+  
+  import('@capacitor/camera').then(camera => {
+    CapacitorCamera = camera.Camera;
+    CameraResultType = camera.CameraResultType;
+    CameraSource = camera.CameraSource;
+  });
+} catch (error) {
+  console.warn('Capacitor modules not available:', error);
+}
 
 const ScanPrescription = () => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
